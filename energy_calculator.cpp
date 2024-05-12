@@ -3,12 +3,15 @@
 #include <cmath>
 #include <string>
 #include <vector>
+#include <regex>
 
 class Atom
 {
 private:
 	std::string atomName;
 	std::string atomType;
+
+	//Add coordinates for atoms
 
 public:
 	Atom(const std::string& name, const std::string& type) : atomName(name), atomType(type) {}
@@ -35,6 +38,39 @@ public:
 	Bond(const Atom& atm1, const Atom& atm2, double eq_dist) : atom1(atm1), atom2(atm2), eq_distance(eq_len) {}
 
 };
+
+std::string readff(char fileName, std::string atomType1, std::string atomType2)
+{
+	std::ifstream file(fileName);
+
+	if (!file.is_open()) 
+	{
+    	std::cerr << "Failed to open Force Field file." << std::endl;
+        return std::string ""; // return error code
+    }
+
+    std::string line;
+    std::regex regexPattern(atomType1 + "\\s" + atomType2);
+    std::regex regexPattern(atomType2 + "\\s" + atomType1);
+
+    // Read and check each line until the end of the file
+    
+    while (std::getline(file, line))
+    {
+    	if (std::regex_search(line, regexPattern1) || std::regex_search(line, regexPattern2))
+    	{
+    		return line;
+    	}
+    }
+
+    return std::string "";
+}
+
+std::string readtop(char fileName, char *atomName1, char *atomName2)
+{
+	
+}
+
 
 
 int main(int argc, char *argv[])
