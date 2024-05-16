@@ -194,8 +194,6 @@ std::string findBondinFF(const std::string ffContents, const std::string& atom1,
         }
     }
 
-    // Close the file
-    file.close();
     return ""; // Return an empty string if the pattern is not found
 }
 
