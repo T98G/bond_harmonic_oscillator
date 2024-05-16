@@ -2,8 +2,15 @@
 #include <fstream>
 #include <cmath>
 #include <string>
-#include <vector>
+#include <sstream>
 #include <regex>
+#include <vector>
+
+
+//##########################################
+//########## Define Classes ################
+//##########################################
+
 
 class Atom
 {
@@ -39,8 +46,15 @@ public:
 
 };
 
+//##########################################
+//########## Define Functions ##############
+//##########################################
 
-std::string extractString(const std::string& input) {
+//Define functions to search the forcefield
+
+
+std::string extractString(const std::string& input)
+{
     size_t start = input.find('"');
     if (start == std::string::npos) // If no opening quotation mark is found
         return "";
@@ -50,9 +64,11 @@ std::string extractString(const std::string& input) {
     return input.substr(start + 1, end - start - 1);
 }
 
-std::string readff(const std::string& filename, std::vector<std::string>& visitedFiles) {
+std::string readff(const std::string& filename, std::vector<std::string>& visitedFiles) 
+{
     // Check if the file has already been visited to prevent infinite loops
-    if (std::find(visitedFiles.begin(), visitedFiles.end(), filename) != visitedFiles.end()) {
+    if (std::find(visitedFiles.begin(), visitedFiles.end(), filename) != visitedFiles.end()) 
+    {
         // File has already been visited, return an empty string
         return "";
     }
@@ -63,7 +79,8 @@ std::string readff(const std::string& filename, std::vector<std::string>& visite
     std::ifstream file(filename);
 
     // Check if the file is opened successfully
-    if (!file.is_open()) {
+    if (!file.is_open()) 
+    {
         std::cerr << "Failed to open the file: " << filename << std::endl;
         return ""; // Return an empty string if file opening fails
     }
@@ -80,8 +97,10 @@ std::string readff(const std::string& filename, std::vector<std::string>& visite
     std::string result = "";
 
     // Read and check each line until the end of the file
-    while (std::getline(file, line)) {
-        if (std::regex_search(line, regexPattern)) {
+    while (std::getline(file, line)) 
+    {
+        if (std::regex_search(line, regexPattern)) 
+        {
             nextFile = extractString(line); 
 
             std::cout << "Including file: " << nextFile << std::endl;
@@ -92,7 +111,8 @@ std::string readff(const std::string& filename, std::vector<std::string>& visite
             // Recursively read the next file and append its content to the result
             result += readff(nextFilePath, visitedFiles);
         }
-        else {
+        else 
+        {
             result += line + "\n"; // Append the line to the result
         }
     }
@@ -103,20 +123,46 @@ std::string readff(const std::string& filename, std::vector<std::string>& visite
     return result;
 }
 
-std::string findBondinFF(const std::string& filename, const std::string& variable1, const std::string& variable2) {
-    // Open the file
-    std::ifstream file(filename);
 
-    // Check if the file is opened successfully
+std::string findBondinFF(const std::string ffContents, const std::string& atom1, const std::string& atom2)
+{
 
-    if (!file.is_open()) {
-        std::cerr << "Failed to open the file." << std::endl;
-        return ""; // Return an empty string if file opening fails
+
+    // Read the finalResult line by line
+    std::istringstream iss(ffContents);
+    std::string line;
+
+    std::string atomType1;
+    std::string atomType2;
+
+    while(std::getline(iss, line))
+    {
+
+        if (line.find("[ atoms ]") != std::string::npos) 
+        {
+            inBondTypesSection = true;
+            continue; // Skip this line and move to the next
+        }
+
+        if if (inBondTypesSection && line.find("[") != std::string::npos)
+        {
+            break;
+        }
+
+        if (line.find(atom1) != std::string::npos)
+        {
+            atom1 = line.substr(13, 4);
+        }
+
+        if (line.find(atom2) != std::string::npos)
+        {
+            atom2 = line.substr(13, 4);
+        }
     }
 
-    // Construct the regular expression pattern with variable spacing
-    std::string pattern1 = variable1 + "\\s+" + variable2; // \\s+ matches one or more whitespace characters
-    std::string pattern2 = variable2 + "\\s+" + variable1;
+
+    std::string pattern1 = atomType1 + "\\s+" + atomType2; // \\s+ matches one or more whitespace characters
+    std::string pattern2 = atomType2 + "\\s+" + atomType1;
     std::regex regexPattern1(pattern1);
     std::regex regexPattern2(pattern2);
 
@@ -124,22 +170,24 @@ std::string findBondinFF(const std::string& filename, const std::string& variabl
     bool inBondTypesSection = false;
 
     // Read and check each line until the end of the file
-    while (std::getline(file, line)) {
-        // Check if the line matches the regular expression pattern
-
-    	// Check if the line contains the start of the bond types section
-        if (line.find("[ bondtypes ]") != std::string::npos) {
+    while (std::getline(iss, line)) 
+    {
+        // Check if the line contains the start of the bond types section
+        if (line.find("[ bondtypes ]") != std::string::npos) 
+        {
             inBondTypesSection = true;
             continue; // Skip this line and move to the next
         }
 
         // Check if the line contains the start of the next section
-        if (inBondTypesSection && line.find("[") != std::string::npos) {
+        if (inBondTypesSection && line.find("[") != std::string::npos) 
+        {
             // We've reached the end of the bond types section
             break; // Exit the loop
         }
 
-        if (std::regex_search(line, regexPattern1) || std::regex_search(line, regexPattern1)) {
+        if (std::regex_search(line, regexPattern1) || std::regex_search(line, regexPattern1)) 
+        {
             // Close the file
             file.close();
             return line; // Return the matched line
@@ -195,12 +243,6 @@ int main(int argc, char *argv[])
 
 	}
 
-	std::string atomType1 = "CA";
-	std::string atomType2 = "OH";
-
-	std::string line = findBondinFF(forcefield, atomType1, atomType2);
-
-	std::cout << line << std::endl; 
 
 
 	return 0;
