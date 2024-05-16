@@ -1,1 +1,4 @@
 *.out
+*.itp 
+*.top
+forcefield.ff
