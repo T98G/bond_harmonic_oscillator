@@ -6,10 +6,16 @@
 #include <regex>
 #include <vector>
 
+//#############################################################################################
+//################################### Define Constants ########################################
+//#############################################################################################
 
-//##########################################
-//########## Define Classes ################
-//##########################################
+const double dt = 1e-16; //Time step (s)
+
+
+//#############################################################################################
+//#################################### Define Classes #########################################
+//#############################################################################################
 
 
 class Atom
@@ -46,9 +52,9 @@ public:
 
 };
 
-//##########################################
-//########## Define Functions ##############
-//##########################################
+//##############################################################################################
+//#################################### Define Functions ########################################
+//##############################################################################################
 
 //Define functions to search the forcefield
 
@@ -197,15 +203,28 @@ std::string findBondinFF(const std::string ffContents, const std::string& atom1,
     return ""; // Return an empty string if the pattern is not found
 }
 
+// Function to calculate the force on atom 1 due to the spring
+std::array<double, 3> calculate_force(const std::array<double, 3>& pos1, const std::array<double, 3>& pos2, double k) 
+{
+    std::array<double, 3> force;
+    
+    for (int i = 0; i < 3; ++i) 
+    {
+        force[i] = -k * (pos1[i] - pos2[i]);
+    }
+    return force;
+}
+
+
+
+
 int main(int argc, char *argv[])
 {	
 
 	char *pdb;
 	char *topol;
-	char *forcefield;
-	char *mol;
-	char *atom1;
-	char *atom2;
+    char *nstep;
+    char *out;
 
 	for (int i = 0; i < argc; i++)
 	{
@@ -219,25 +238,15 @@ int main(int argc, char *argv[])
 			topol = argv[i + 1];
 		}
 
-		if (strcmp(argv[i], "-ff") == 0)
-		{
-			forcefield = argv[i + 1];
-		}
+        if (strcmp(argv[i], "-nstep") == 0)
+        {
+            forcefield = argv[i + 1];
+        }
 
-		if (strcmp(argv[i], "-mol") == 0)
-		{
-			mol = argv[i + 1];
-		}
-
-		if (strcmp(argv[i], "-atom1") == 0)
-		{
-			atom1 = argv[i + 1];
-		}
-
-		if (strcmp(argv[i], "-atom2") == 0)
-		{
-			atom2 = argv[i + 1];
-		}
+        if (strcmp(argv[i], "-out") == 0)
+        {
+            forcefield = argv[i + 1];
+        }
 
 	}
 
