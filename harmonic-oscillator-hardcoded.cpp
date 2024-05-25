@@ -3,6 +3,9 @@
 #include <array>
 #include <vector>
 #include <cmath>
+#include <sstream>
+#include <iomanip>
+#include <cstring>
 
 //#############################################################################################
 //################################### Define Constants ########################################
@@ -50,23 +53,24 @@ public:
     }
 };
 
-std::vector<Atom> readpdb(char *filename)
+std::vector<Atom> readpdb(std::string filename)
 {	
 
 	std::vector<Atom> atoms;
-	std::ifstream pdb(filename);
+	std::ifstream file(filename);
 	std::string line;
 
 
 	if (!file.is_open()) 
     {
         std::cerr << "Failed to open the file: " << filename << std::endl;
-        return ""; // Return an empty string if file opening fails
+        return std::vector<Atom> ();
     }
 
     while (std::getline(file, line))
-    {
-    	if (line.substr(0, 6) == "ATOM")
+    {	
+
+    	if (line.substr(0, 4) == "ATOM")
     	{
     		std::istringstream iss(line.substr(30, 55));
     		double x, y, z;
@@ -82,10 +86,12 @@ std::vector<Atom> readpdb(char *filename)
 	return atoms;
 }
 
-void writePDBModel(const std::string& filename ,const std::vector<Atom>& atoms, int modelNumber)
+void writePDBModelToTrajectory(const std::string& filename, const std::vector<Atom>& atoms, int modelNumber) 
 {
-	std::ofstream outFile(filename, std::ios_base::app); // Open the file in append mode
-    if (!outFile.is_open()) {
+    std::ofstream outFile(filename, std::ios_base::app); // Open the file in append mode
+    
+    if (!outFile.is_open()) 
+    {
         std::cerr << "Error opening file: " << filename << std::endl;
         return;
     }
@@ -94,7 +100,8 @@ void writePDBModel(const std::string& filename ,const std::vector<Atom>& atoms, 
     outFile << "MODEL     " << std::setw(4) << std::setfill(' ') << modelNumber << std::endl;
 
     // Write atom records
-    for (const auto& atom : atoms) {
+    for (const auto& atom : atoms) 
+    {
         outFile << std::fixed << std::setprecision(3); // Set precision for coordinates
         outFile << "ATOM  " << std::setw(5) << std::setfill(' ') << std::right << 1 << " "; // Atom serial number
         outFile << std::left << std::setw(4) << atom.getAtomName(); // Atom name
@@ -125,7 +132,8 @@ std::array<double, 3> calculate_force(const std::array<double, 3>& pos1, const s
 }
 
 // Runge-Kutta 4th-order integration step
-void runge_kutta_step(std::array<double, 3>& pos1, std::array<double, 3>& vel1, std::array<double, 3>& pos2, std::array<double, 3>& vel2) {
+void runge_kutta_step(std::array<double, 3>& pos1, std::array<double, 3>& vel1, std::array<double, 3>& pos2, std::array<double, 3>& vel2) 
+{    
     std::array<double, 3> k1_v1, k1_v2, k1_x1, k1_x2;
     std::array<double, 3> k2_v1, k2_v2, k2_x1, k2_x2;
     std::array<double, 3> k3_v1, k3_v2, k3_x1, k3_x2;
@@ -133,7 +141,8 @@ void runge_kutta_step(std::array<double, 3>& pos1, std::array<double, 3>& vel1, 
 
     // Compute k1
     auto force = calculate_force(pos1, pos2);
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 3; ++i) 
+    {
         k1_v1[i] = dt * force[i] / m1;
         k1_v2[i] = -dt * force[i] / m2;
         k1_x1[i] = dt * vel1[i];
@@ -143,14 +152,16 @@ void runge_kutta_step(std::array<double, 3>& pos1, std::array<double, 3>& vel1, 
     // Compute k2
     std::array<double, 3> pos1_temp = pos1, pos2_temp = pos2;
     std::array<double, 3> vel1_temp = vel1, vel2_temp = vel2;
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 3; ++i) 
+    {
         pos1_temp[i] += k1_x1[i] / 2;
         pos2_temp[i] += k1_x2[i] / 2;
         vel1_temp[i] += k1_v1[i] / 2;
         vel2_temp[i] += k1_v2[i] / 2;
     }
     force = calculate_force(pos1_temp, pos2_temp);
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 3; ++i) 
+    {
         k2_v1[i] = dt * force[i] / m1;
         k2_v2[i] = -dt * force[i] / m2;
         k2_x1[i] = dt * vel1_temp[i];
@@ -162,14 +173,16 @@ void runge_kutta_step(std::array<double, 3>& pos1, std::array<double, 3>& vel1, 
     pos2_temp = pos2;
     vel1_temp = vel1;
     vel2_temp = vel2;
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 3; ++i) 
+    {
         pos1_temp[i] += k2_x1[i] / 2;
         pos2_temp[i] += k2_x2[i] / 2;
         vel1_temp[i] += k2_v1[i] / 2;
         vel2_temp[i] += k2_v2[i] / 2;
     }
     force = calculate_force(pos1_temp, pos2_temp);
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 3; ++i) 
+    {
         k3_v1[i] = dt * force[i] / m1;
         k3_v2[i] = -dt * force[i] / m2;
         k3_x1[i] = dt * vel1_temp[i];
@@ -188,7 +201,8 @@ void runge_kutta_step(std::array<double, 3>& pos1, std::array<double, 3>& vel1, 
         vel2_temp[i] += k3_v2[i];
     }
     force = calculate_force(pos1_temp, pos2_temp);
-    for (int i = 0; ++i < 3; ++i) {
+    for (int i = 0; ++i < 3; ++i) 
+    {
         k4_v1[i] = dt * force[i] / m1;
         k4_v2[i] = -dt * force[i] / m2;
         k4_x1[i] = dt * vel1_temp[i];
@@ -196,7 +210,8 @@ void runge_kutta_step(std::array<double, 3>& pos1, std::array<double, 3>& vel1, 
     }
 
     // Update positions and velocities
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 3; ++i) 
+    {
         pos1[i] += (k1_x1[i] + 2 * k2_x1[i] + 2 * k3_x1[i] + k4_x1[i]) / 6;
         pos2[i] += (k1_x2[i] + 2 * k2_x2[i] + 2 * k3_x2[i] + k4_x2[i]) / 6;
         vel1[i] += (k1_v1[i] + 2 * k2_v1[i] + 2 * k3_v1[i] + k4_v1[i]) / 6;
@@ -205,38 +220,65 @@ void runge_kutta_step(std::array<double, 3>& pos1, std::array<double, 3>& vel1, 
 }
 
 
-int main(int argc, char const *argv[])
+int main(int argc, char *argv[])
 {
 
-	char *pdb;
-    char *out;
+	char *pdbName;
+    char *outFileName;
 
 	for (int i = 0; i < argc; i++)
 	{
-		if (strcmp(argv[i], "-pdb") == 0)
+        if (std::strcmp(argv[i], "-pdb") == 0 && i + 1 < argc)
 		{
-			pdb = argv[i + 1];
+			pdbName = argv[i + 1];
 		}
 
-        if (strcmp(argv[i], "-out") == 0)
+        if (std::strcmp(argv[i], "-out") == 0 && i + 1 < argc)
         {
-            forcefield = argv[i + 1];
+            outFileName = argv[i + 1];
         }
-
 	}
 
+   
+    std::string pdb = std::string(pdbName);
+    std::string outFile = std::string(outFileName);
+
+     // Check if required arguments are provided
+    if (pdb.empty() || outFile.empty()) 
+    {
+        std::cerr << "Usage: " << argv[0] << " -pdb <pdb_file> -out <output_file>" << std::endl;
+        return 1;
+    }
 
 	std::vector <Atom> atoms = readpdb(pdb);
 
+	if (atoms.size() < 1) 
+	{
+    	std::cerr << "Error: Insufficient atoms in the vector." << std::endl;
+    	// Handle the error appropriately, e.g., return from the function or exit the program
+	}
 
 	std::array<double, 3> x1 = {atoms[0].getX(), atoms[0].getY(), atoms[0].getZ()}; // Initial position of atom 1 (m)
     std::array<double, 3> v1 = {0.0, 0.0, 0.0}; // Initial velocity of atom 1 (m/s)
     std::array<double, 3> x2 = {atoms[1].getX(), atoms[1].getY(), atoms[1].getZ()}; // Initial position of atom 2 (m)
     std::array<double, 3> v2 = {0.0, 0.0, 0.0};
 
+    double time = 0.0;
+    int modelNumber = 0;
 
+    while (time < t_end)
+    {	
 
+    	writePDBModelToTrajectory(outFile, atoms, modelNumber);
 
+    	runge_kutta_step(x1, v1, x2, v2);
+    	
+    	atoms[0].setCoordinates(x1[0], x1[1], x1[2]);
+    	atoms[1].setCoordinates(x2[0], x2[1], x2[2]);
+    
+    	modelNumber++;
+    	time += dt;
+    }
 
 	return 0;
 }
