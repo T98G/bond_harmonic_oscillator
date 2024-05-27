@@ -129,6 +129,27 @@ std::string readff(const std::string& filename, std::vector<std::string>& visite
     return result;
 }
 
+std::string extractAtomType(const std::string& ffContents, const std::string& atomName) {
+    std::istringstream iss(ffContents);
+    std::string line;
+    std::string atomType;
+
+    // Construct the regex pattern for finding the atom type
+    std::regex atomPattern("^\\s*\\d+\\s+" + atomName + "\\s+(\\w+)");
+
+    // Search for the atom type based on the pattern
+    while (std::getline(iss, line)) {
+        std::cout << "Processing line: " << line << std::endl; // Print the line being processed
+        std::smatch match;
+        if (std::regex_search(line, match, atomPattern)) {
+            std::cout << "Match found: " << match[0] << std::endl; // Print the entire match
+            atomType = match[1]; // Extract the captured group containing the atom type
+            break;  // Stop searching after finding the atom type
+        }
+    }
+
+    return atomType;
+}
 
 std::string findBondinFF(const std::string ffContents, const std::string& atom1, const std::string& atom2)
 {
