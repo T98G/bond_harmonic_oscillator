@@ -8,6 +8,7 @@
 #include <cstring>
 #include <regex>
 #include <string>
+#include <cctype>
 
 
 //#############################################################################################
@@ -150,70 +151,43 @@ std::string extractAtomType(const std::string& ffContents, const std::string& at
     return atomType;
 }
 
-std::string findBondinFF(const std::string ffContents, const std::string& atom1, const std::string& atom2)
+std::vector<std::string> findAtominFF(const std::string& ffContents, const std::string& atomType1, const std::string& atomType2)
 {
-    // Read the finalResult line by line
+    
+}
+
+
+
+std::string findBondinFF(const std::string& ffContents, const std::string& atomType1, const std::string& atomType2) {
+    
     std::istringstream iss(ffContents);
     std::string line;
-    bool inBondTypesSection = false;
+    bool inAtomsSection = false;
 
-    std::string atomType1;
-    std::string atomType2;
-
-    while(std::getline(iss, line))
-    {
-
-        if (line.find("[ atoms ]") != std::string::npos) 
-        {
-            inBondTypesSection = true;
-            continue; // Skip this line and move to the next
-        }
-
-        if (inBondTypesSection && line.find("[") != std::string::npos)
-        {
-            break;
-        }
-
-        if (line.find(atom1) != std::string::npos)
-        {
-            atomType1 = line.substr(13, 4);
-        }
-
-        if (line.find(atom2) != std::string::npos)
-        {
-            atomType2 = line.substr(13, 4);
-        }
-    }
-
-
-    std::string pattern1 = atomType1 + "\\s+" + atomType2; // \\s+ matches one or more whitespace characters
+    std::string pattern1 = atomType1 + "\\s+" + atomType2;
     std::string pattern2 = atomType2 + "\\s+" + atomType1;
     std::regex regexPattern1(pattern1);
     std::regex regexPattern2(pattern2);
 
-    inBondTypesSection = false;
+    // Reset stream state and rewind to the beginning
+    iss.clear();
+    iss.seekg(0, std::ios::beg);
+
+    bool inBondTypesSection = false;
 
     // Read and check each line until the end of the file
-    while (std::getline(iss, line)) 
-    {
-        // Check if the line contains the start of the bond types section
-        if (line.find("[ bondtypes ]") != std::string::npos) 
-        {
+    while (std::getline(iss, line)) {
+        if (line.find("[ bondtypes ]") != std::string::npos) {
             inBondTypesSection = true;
-            continue; // Skip this line and move to the next
+            continue;
         }
-
-        // Check if the line contains the start of the next section
-        if (inBondTypesSection && line.find("[") != std::string::npos) 
-        {
-            // We've reached the end of the bond types section
-            break; // Exit the loop
+        if (inBondTypesSection && line.find("[") != std::string::npos) {
+            break; // Exit loop when the next section is encountered
         }
-
-        if (std::regex_search(line, regexPattern1) || std::regex_search(line, regexPattern1)) 
-        {
-            // Close the file
-            return line; // Return the matched line
+        if (inBondTypesSection) {
+            if (std::regex_search(line, regexPattern1) || std::regex_search(line, regexPattern2)) {
+                return line; // Return the matched line
+            }
         }
     }
 
@@ -445,7 +419,7 @@ int main(int argc, char *argv[])
     std::string ffContents = readff(topol, visitedFiles);
 
     // Atom names to extract the atom types
-    std::string atomName1 = "O12";
+    std::string atomName1 = "O14";
     std::string atomName2 = "P";
 
     // Extract atom types
@@ -455,6 +429,9 @@ int main(int argc, char *argv[])
     // Output the extracted atom types
     std::cout << "Atom Type for " << atomName1 << ": " << atomType1 << std::endl;
     std::cout << "Atom Type for " << atomName2 << ": " << atomType2 << std::endl;
+
+    atomType1.erase(std::remove_if(atomType1.begin(), atomType1.end(), ::isspace), atomType1.end());
+    atomType2.erase(std::remove_if(atomType2.begin(), atomType2.end(), ::isspace), atomType2.end());
 
     std::cout << findBondinFF(ffContents, atomType1, atomType2) << std::endl;
 
