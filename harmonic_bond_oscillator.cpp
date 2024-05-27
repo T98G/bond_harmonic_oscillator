@@ -151,14 +151,39 @@ std::string extractAtomType(const std::string& ffContents, const std::string& at
     return atomType;
 }
 
-std::vector<std::string> findAtominFF(const std::string& ffContents, const std::string& atomType1, const std::string& atomType2)
+std::vector<double> findAtomsinFF(const std::string& ffContents, const std::string& atomType1, const std::string& atomType2)
 {
-    
+
+    std::istringstream iss(ffContents);
+    std::string line;
+
+    std::regex regexAtom1(atomType1 + "\\s+");
+    std::regex regexAtom2(atomType2 + "\\s+");
+
+
+    // Reset stream state and rewind to the beginning
+    iss.clear();
+    iss.seekg(0, std::ios::beg);
+
+    // Read and check each line until the end of the file
+    while (std::getline(iss, line)) 
+    {
+        if(std::regex_search(line, regexAtom1))
+        {
+
+            //From the atom definition line
+            //Get the atom masses
+            //remember to convert it to kg later!
+        }
+
+    }
+
+    return ""; // Return an empty string if the pattern is not found
 }
 
 
-
-std::string findBondinFF(const std::string& ffContents, const std::string& atomType1, const std::string& atomType2) {
+std::string findBondinFF(const std::string& ffContents, const std::string& atomType1, const std::string& atomType2) 
+{
     
     std::istringstream iss(ffContents);
     std::string line;
