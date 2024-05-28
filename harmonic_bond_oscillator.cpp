@@ -15,14 +15,14 @@
 //################################### Define Constants ########################################
 //#############################################################################################
 
-const double m1 = 1.67e-27;  // Mass of the first atom (kg)
-const double m2 = 1.67e-27;  // Mass of the second atom (kg)
-const double k = 500;        // Spring constant (N/m)
+//const double m1 = 1.67e-27;  // Mass of the first atom (kg)
+//const double m2 = 1.67e-27;  // Mass of the second atom (kg)
+//const double k = 500;        // Spring constant (N/m)
 const double dt = 1e-16;     // Time step (s)
 const double t_end = 1e-13;  // End time (s)
 
 //#############################################################################################
-//#################################### Define Classes #########################################
+//#################################### Define Class  ##########################################
 //#############################################################################################
 
 class Atom {
@@ -141,7 +141,8 @@ std::string extractAtomType(const std::string& ffContents, const std::string& at
     while (std::getline(iss, line)) 
     {
         std::smatch match;
-        if (std::regex_search(line, match, atomPattern)) {
+        if (std::regex_search(line, match, atomPattern)) 
+        {
             std::cout << "Match found: " << match[0] << std::endl; // Print the entire match
             atomType = match[1]; // Extract the captured group containing the atom type
             break;  // Stop searching after finding the atom type
@@ -151,86 +152,80 @@ std::string extractAtomType(const std::string& ffContents, const std::string& at
     return atomType;
 }
 
-std::vector<double> findAtomsinFF(const std::string& ffContents, const std::string& atomType1, const std::string& atomType2)
-{
-
+double findAtomsinFF(const std::string& ffContents, const std::string& atomType) {
     std::istringstream iss(ffContents);
     std::string line;
 
-    std::regex regexAtom1(atomType1 + "\\s+");
-    std::regex regexAtom2(atomType2 + "\\s+");
+    // Adjusted regex to match atom type up to 4 characters followed by a floating-point number
+    std::regex regexAtom(atomType);
 
-
-    // Reset stream state and rewind to the beginning
-    iss.clear();
-    iss.seekg(0, std::ios::beg);
+    double mass = 0;
 
     // Read and check each line until the end of the file
-    while (std::getline(iss, line)) 
-    {
-        if(std::regex_search(line, regexAtom1))
-        {
+    while (std::getline(iss, line)) {
+        std::smatch match;
 
-            //From the atom definition line
-            //Get the atom masses
-            //remember to convert it to kg later!
+        if (std::regex_search(line, match, regexAtom)) {
+
+            std::cout << line << std::endl;
+
+            // Find the position of the atom type in the line
+            size_t pos = line.find(atomType);
+            if (pos != std::string::npos) {
+                // Extract the number after the atom type
+                std::string numberStr = line.substr(pos + atomType.length());
+                try {
+                    mass = std::stod(numberStr);
+                    std::cout << mass << std::endl;
+                } catch (const std::invalid_argument& e) {
+                    std::cerr << "Conversion error: " << e.what() << std::endl;
+                }
+            }
+            break;  // Assuming we only need the first match
         }
-
     }
 
-    return ""; // Return an empty string if the pattern is not found
+    return mass;
 }
 
-
-std::string findBondinFF(const std::string& ffContents, const std::string& atomType1, const std::string& atomType2) 
+double findBondinFF(const std::string& ffContents, const std::string& atomType1, const std::string& atomType2) 
 {
-    
     std::istringstream iss(ffContents);
     std::string line;
-    bool inAtomsSection = false;
 
-    std::string pattern1 = atomType1 + "\\s+" + atomType2;
-    std::string pattern2 = atomType2 + "\\s+" + atomType1;
+    std::string pattern1 = atomType1 + "\\s+" + atomType2 + "\\s+\\d+\\s+\\d+\\.\\d+\\s+(\\d+\\.\\d+)";
+    std::string pattern2 = atomType2 + "\\s+" + atomType1 + "\\s+\\d+\\s+\\d+\\.\\d+\\s+(\\d+\\.\\d+)";
     std::regex regexPattern1(pattern1);
     std::regex regexPattern2(pattern2);
-
-    // Reset stream state and rewind to the beginning
-    iss.clear();
-    iss.seekg(0, std::ios::beg);
 
     bool inBondTypesSection = false;
 
     // Read and check each line until the end of the file
-    while (std::getline(iss, line)) {
-        if (line.find("[ bondtypes ]") != std::string::npos) {
+    while (std::getline(iss, line)) 
+    {
+        std::smatch match;
+
+        if (line.find("[ bondtypes ]") != std::string::npos) 
+        {
             inBondTypesSection = true;
             continue;
         }
-        if (inBondTypesSection && line.find("[") != std::string::npos) {
+        if (inBondTypesSection && line.find("[") != std::string::npos) 
+        {
             break; // Exit loop when the next section is encountered
         }
-        if (inBondTypesSection) {
-            if (std::regex_search(line, regexPattern1) || std::regex_search(line, regexPattern2)) {
-                return line; // Return the matched line
+        if (inBondTypesSection) 
+        {
+            if (std::regex_search(line, match, regexPattern1) || std::regex_search(line, match, regexPattern2)) 
+            {
+                return std::stod(match[1].str()); // Return the captured spring constant
             }
         }
     }
 
-    return ""; // Return an empty string if the pattern is not found
+    return 0.0; // Return 0.0 if the pattern is not found
 }
 
-// Function to calculate the force on atom 1 due to the spring
-
-std::array<double, 3> calculate_force(const std::array<double, 3>& pos1, const std::array<double, 3>& pos2, double k) 
-{
-    std::array<double, 3> force;
-    
-    for (int i = 0; i < 3; ++i) 
-    {
-        force[i] = -k * (pos1[i] - pos2[i]);
-    }
-    return force;
-}
 
 std::vector<Atom> readpdb(std::string filename)
 {	
@@ -298,7 +293,7 @@ void writePDBModelToTrajectory(const std::string& filename, const std::vector<At
     outFile.close();
 }
 
-std::array<double, 3> calculate_force(const std::array<double, 3>& pos1, const std::array<double, 3>& pos2)
+std::array<double, 3> calculate_force(const std::array<double, 3>& pos1, const std::array<double, 3>& pos2, double k)
 {
     std::array<double, 3> force;
 
@@ -310,7 +305,7 @@ std::array<double, 3> calculate_force(const std::array<double, 3>& pos1, const s
 }
 
 // Runge-Kutta 4th-order integration step
-void runge_kutta_step(std::array<double, 3>& pos1, std::array<double, 3>& vel1, std::array<double, 3>& pos2, std::array<double, 3>& vel2) 
+void runge_kutta_step(std::array<double, 3>& pos1, std::array<double, 3>& vel1, std::array<double, 3>& pos2, std::array<double, 3>& vel2, double m1, double m2, double k) 
 {    
     std::array<double, 3> k1_v1, k1_v2, k1_x1, k1_x2;
     std::array<double, 3> k2_v1, k2_v2, k2_x1, k2_x2;
@@ -318,7 +313,7 @@ void runge_kutta_step(std::array<double, 3>& pos1, std::array<double, 3>& vel1, 
     std::array<double, 3> k4_v1, k4_v2, k4_x1, k4_x2;
 
     // Compute k1
-    auto force = calculate_force(pos1, pos2);
+    auto force = calculate_force(pos1, pos2, k);
     for (int i = 0; i < 3; ++i) 
     {
         k1_v1[i] = dt * force[i] / m1;
@@ -339,7 +334,7 @@ void runge_kutta_step(std::array<double, 3>& pos1, std::array<double, 3>& vel1, 
         vel2_temp[i] += k1_v2[i] / 2;
     }
 
-    force = calculate_force(pos1_temp, pos2_temp);
+    force = calculate_force(pos1_temp, pos2_temp, k);
     
     for (int i = 0; i < 3; ++i) 
     {
@@ -363,7 +358,7 @@ void runge_kutta_step(std::array<double, 3>& pos1, std::array<double, 3>& vel1, 
         vel2_temp[i] += k2_v2[i] / 2;
     }
     
-    force = calculate_force(pos1_temp, pos2_temp);
+    force = calculate_force(pos1_temp, pos2_temp, k);
     
     for (int i = 0; i < 3; ++i) 
     {
@@ -387,7 +382,7 @@ void runge_kutta_step(std::array<double, 3>& pos1, std::array<double, 3>& vel1, 
         vel2_temp[i] += k3_v2[i];
     }
    
-    force = calculate_force(pos1_temp, pos2_temp);
+    force = calculate_force(pos1_temp, pos2_temp, k);
     
     for (int i = 0; ++i < 3; ++i) 
     {
@@ -412,72 +407,68 @@ void runge_kutta_step(std::array<double, 3>& pos1, std::array<double, 3>& vel1, 
 //##############################################################################################
 
 
+
 int main(int argc, char *argv[])
 {
+    // Declare pointers for file names and initialize them to nullptr
+    char *pdbName = nullptr;
+    char *outFileName = nullptr;
+    char *top = nullptr;
 
-    char *pdbName;
-    char *outFileName;
-    char * top;
-
+    // Parse the command-line arguments
     for (int i = 0; i < argc; i++)
     {
         if (std::strcmp(argv[i], "-pdb") == 0 && i + 1 < argc)
         {
             pdbName = argv[i + 1];
         }
-
-        if (std::strcmp(argv[i], "-out") == 0 && i + 1 < argc)
+        else if (std::strcmp(argv[i], "-out") == 0 && i + 1 < argc)
         {
             outFileName = argv[i + 1];
         }
-
-         if (std::strcmp(argv[i], "-top") == 0 && i + 1 < argc)
+        else if (std::strcmp(argv[i], "-top") == 0 && i + 1 < argc)
         {
             top = argv[i + 1];
         }
     }
 
-    std::string topol = std::string(top);
-
-    std::vector<std::string> visitedFiles;
-
-    std::string ffContents = readff(topol, visitedFiles);
-
-    // Atom names to extract the atom types
-    std::string atomName1 = "O14";
-    std::string atomName2 = "P";
-
-    // Extract atom types
-    std::string atomType1 = extractAtomType(ffContents, atomName1);
-    std::string atomType2 = extractAtomType(ffContents, atomName2);
-
-    // Output the extracted atom types
-    std::cout << "Atom Type for " << atomName1 << ": " << atomType1 << std::endl;
-    std::cout << "Atom Type for " << atomName2 << ": " << atomType2 << std::endl;
-
-    atomType1.erase(std::remove_if(atomType1.begin(), atomType1.end(), ::isspace), atomType1.end());
-    atomType2.erase(std::remove_if(atomType2.begin(), atomType2.end(), ::isspace), atomType2.end());
-
-    std::cout << findBondinFF(ffContents, atomType1, atomType2) << std::endl;
-
-
-
-    std::string pdb = std::string(pdbName);
-    std::string outFile = std::string(outFileName);
-
-     // Check if required arguments are provided
-    if (pdb.empty() || outFile.empty()) 
+    // Check if required arguments are provided
+    if (pdbName == nullptr || outFileName == nullptr || top == nullptr)
     {
         std::cerr << "Usage: " << argv[0] << " -pdb <pdb_file> -top <topology file> -out <output_file>" << std::endl;
         return 1;
     }
 
+    std::string topol = std::string(top);
+    std::vector<std::string> visitedFiles;
+    std::string ffContents = readff(topol, visitedFiles);
+
+    std::string pdb = std::string(pdbName);
+    std::string outFile = std::string(outFileName);
+
+
     std::vector <Atom> atoms = readpdb(pdb);
 
-    if (atoms.size() < 1) 
+    // Atom names to extract the atom types
+    std::string atomName1 = atoms[0].getAtomName();
+    std::string atomName2 = atoms[1].getAtomName();
+
+    // Extract atom types
+    std::string atomType1 = extractAtomType(ffContents, atomName1);
+    std::string atomType2 = extractAtomType(ffContents, atomName2);
+
+    double k = findBondinFF(ffContents, atomType1, atomType2);
+
+    double m1 = findAtomsinFF(ffContents, atomType1) * 1e-27;
+    double m2 = findAtomsinFF(ffContents, atomType2) * 1e-27;
+
+    //std::cout << m1 << std::endl;
+    //std::cout << m2 << std::endl;
+
+    if (atoms.size() < 2)
     {
         std::cerr << "Error: Insufficient atoms in the vector." << std::endl;
-        // Handle the error appropriately, e.g., return from the function or exit the program
+        return 1;
     }
 
     std::array<double, 3> x1 = {atoms[0].getX(), atoms[0].getY(), atoms[0].getZ()}; // Initial position of atom 1 (m)
@@ -489,15 +480,14 @@ int main(int argc, char *argv[])
     int modelNumber = 0;
 
     while (time < t_end)
-    {   
-
+    {
         writePDBModelToTrajectory(outFile, atoms, modelNumber);
 
-        runge_kutta_step(x1, v1, x2, v2);
-        
+        runge_kutta_step(x1, v1, x2, v2, m1, m2, k);
+
         atoms[0].setCoordinates(x1[0], x1[1], x1[2]);
         atoms[1].setCoordinates(x2[0], x2[1], x2[2]);
-    
+
         modelNumber++;
         time += dt;
     }
