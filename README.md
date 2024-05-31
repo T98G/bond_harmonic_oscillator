@@ -27,13 +27,13 @@ Compilation
 
 To compile the program, use the following command in your terminal:
 
-g++ -o harmonic_bond_oscillator harmonic_bond_oscillator.cpp
+* g++ -o harmonic_bond_oscillator harmonic_bond_oscillator.cpp
 
 ## Running the Program
 
 After compiling, run the executable:
 
-./harmonic_bond_oscillator
+* ./harmonic_bond_oscillator
 
 ## Program Structure
 
